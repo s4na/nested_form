@@ -1,0 +1,53 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version:
+        - 2.6
+        - 2.7
+        - 3.0
+        gemfile:
+        # - 'Gemfile'
+        # - 'gemfiles/Gemfile.rails3_1'
+        # - 'gemfiles/Gemfile.rails3_0'
+        - gemfiles/Gemfile.rails4_1
+        - gemfiles/Gemfile.rails6_1
+        - gemfiles/Gemfile.rails7_0
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v2
+        with:
+          java-version: 1.8
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Install dependencies
+        run: |
+          BUNDLE_GEMFILE=${{ matrix.gemfile }} bundle install
+
+      - name: Run db migrate
+        run: |
+          sh -c 'cd spec/dummy && rake db:migrate RAILS_ENV=test'
+
+      - name: Run tests
+        run: xvfb-run rake
+
+    env:
+      RUBYOPT: -W:no-deprecated -W:no-experimental
+
+# notifications:
+#   email:
+#     recipients:
+#       - just.lest@gmail.com
